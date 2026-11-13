@@ -31,9 +31,9 @@ function friendlyError(err: unknown): string {
   if (/quota/i.test(msg)) {
     const wait = msg.match(/Try again in ([0-9:]+)/)?.[1];
     return (
-      "You've used today's free GPU time." +
+      "You've used today's free GPU time (2 minutes a day without an account)." +
       (wait && wait !== "0:00:00" ? ` It refills in about ${wait}.` : " It refills over the next day.") +
-      " Shorter clips use less of it."
+      " Tip: Wan 2.2 with a photo and a 2-second clip uses the least, so you can make several a day."
     );
   }
   if (/sleeping|paused|building|runtime_error|could not resolve|failed to fetch/i.test(msg)) {
@@ -56,7 +56,7 @@ export async function generateFree(
       result = await app.predict("/generate_video", {
         input_image: image,
         prompt: opts.prompt,
-        steps: 6,
+        steps: 4, // fewer steps = less of the daily free GPU time
         negative_prompt: opts.negativePrompt,
         duration_seconds: opts.duration,
         guidance_scale: 1,

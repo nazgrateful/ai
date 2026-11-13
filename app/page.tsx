@@ -91,7 +91,7 @@ export default function Home() {
   const [enhance, setEnhance] = useState(true);
   const [modelId, setModelId] = useState(MODELS[0].id);
   const [aspectRatio, setAspectRatio] = useState("16:9");
-  const [duration, setDuration] = useState(3);
+  const [duration, setDuration] = useState(2);
   const [image, setImage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -115,7 +115,7 @@ export default function Home() {
   // Keep options valid for the newly chosen model.
   useEffect(() => {
     if (model.aspectRatios && !model.aspectRatios.includes(aspectRatio)) setAspectRatio(model.aspectRatios[0]);
-    if (!model.durations.includes(duration)) setDuration(model.durations[0]);
+    setDuration(model.durations[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelId]);
 
@@ -253,7 +253,7 @@ export default function Home() {
         </div>
         <p className="hint">
           {model.blurb}
-          {" Free for everyone, with no sign-up. Each visitor gets a few short clips per day."}
+          {" Free with no sign-up: Hugging Face gives each visitor 2 minutes of GPU time per day."}
         </p>
 
         <div className="upload">
