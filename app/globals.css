@@ -44,18 +44,6 @@ body {
   gap: 14px;
 }
 
-.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.tab {
-  padding: 12px 8px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-.tab.active { border-color: var(--accent); color: var(--text); background: #7c6cff22; }
-
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
 .field > span { color: var(--muted); }
 textarea, select, .static {

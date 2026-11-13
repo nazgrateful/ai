@@ -5,13 +5,14 @@ import { generateFree } from "@/lib/free";
 import { MODELS, getModel } from "@/lib/models";
 import {
   CAMERAS,
+  EXAMPLES,
   LIGHTING,
   NEGATIVE_PROMPT,
-  SUBJECTS,
+  SETTINGS,
   buildPrompt,
   type CameraKey,
   type LightingKey,
-  type Subject,
+  type SettingKey,
 } from "@/lib/prompt";
 
 type Job = {
@@ -26,28 +27,32 @@ type Job = {
 
 const HISTORY_KEY = "ai-video-maker:history";
 
+const SETTING_LABELS: Record<SettingKey, string> = {
+  auto: "From my description",
+  city: "City street",
+  home: "Home interior",
+  nature: "Nature",
+  beach: "Beach",
+  office: "Office",
+  night: "City at night",
+};
+
 const CAMERA_LABELS: Record<CameraKey, string> = {
   cinematic: "Cinematic dolly",
   handheld: "Handheld",
-  drone: "Drone aerial",
-  telephoto: "Telephoto",
+  portrait: "Portrait close-up",
+  tracking: "Tracking shot",
+  wide: "Wide shot",
   tripod: "Static tripod",
-  closeup: "Macro close-up",
 };
 
 const LIGHTING_LABELS: Record<LightingKey, string> = {
   golden: "Golden hour",
   overcast: "Overcast",
+  window: "Window light",
   blue: "Blue hour",
   night: "Night",
-  studio: "Studio",
   harsh: "Midday sun",
-};
-
-const DEFAULT_CAMERA: Record<Subject, CameraKey> = {
-  human: "cinematic",
-  animal: "telephoto",
-  environment: "drone",
 };
 
 function loadHistory(): Job[] {
@@ -78,7 +83,8 @@ async function fileToDataUri(file: File, maxSide = 1280): Promise<string> {
 }
 
 export default function Home() {
-  const [subject, setSubject] = useState<Subject>("human");
+  const [setting, setSetting] = useState<SettingKey>("auto");
+  const [exampleIdx, setExampleIdx] = useState(0);
   const [idea, setIdea] = useState("");
   const [camera, setCamera] = useState<CameraKey>("cinematic");
   const [lighting, setLighting] = useState<LightingKey>("golden");
@@ -93,8 +99,8 @@ export default function Home() {
 
   const model = getModel(modelId)!;
   const finalPrompt = useMemo(
-    () => buildPrompt({ idea, subject, camera, lighting, enhance }),
-    [idea, subject, camera, lighting, enhance],
+    () => buildPrompt({ idea, setting, camera, lighting, enhance }),
+    [idea, setting, camera, lighting, enhance],
   );
 
   useEffect(() => {
@@ -119,11 +125,6 @@ export default function Home() {
       saveHistory(next);
       return next;
     });
-  }
-
-  function pickSubject(s: Subject) {
-    setSubject(s);
-    setCamera(DEFAULT_CAMERA[s]);
   }
 
   async function onImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -173,33 +174,23 @@ export default function Home() {
     updateJobs((prev) => prev.filter((j) => j.id !== id));
   }
 
-  const example = SUBJECTS.find((s) => s.id === subject)!.example;
+  const example = EXAMPLES[exampleIdx];
+
+  function useExample() {
+    setIdea(example);
+    setExampleIdx((i) => (i + 1) % EXAMPLES.length);
+  }
 
   return (
     <main className="wrap">
       <header className="hero">
-        <h1>AI Video Maker</h1>
-        <p>Photorealistic video of people, wildlife and places, from a sentence.</p>
+        <h1>Real Human AI Video</h1>
+        <p>Photorealistic video of real-looking people in a real 3D world, from a sentence or a photo.</p>
       </header>
 
       <form className="panel" onSubmit={generate}>
-        <div className="tabs" role="tablist" aria-label="Subject">
-          {SUBJECTS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              role="tab"
-              aria-selected={subject === s.id}
-              className={subject === s.id ? "tab active" : "tab"}
-              onClick={() => pickSubject(s.id)}
-            >
-              <span aria-hidden>{s.emoji}</span> {s.label}
-            </button>
-          ))}
-        </div>
-
         <label className="field">
-          <span>Describe your shot</span>
+          <span>Describe the person and what they do</span>
           <textarea
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
@@ -208,11 +199,19 @@ export default function Home() {
             maxLength={1500}
           />
         </label>
-        <button type="button" className="link" onClick={() => setIdea(example)}>
-          Use example
+        <button type="button" className="link" onClick={useExample}>
+          Try an example
         </button>
 
         <div className="grid">
+          <label className="field">
+            <span>Setting</span>
+            <select value={setting} onChange={(e) => setSetting(e.target.value as SettingKey)} disabled={!enhance}>
+              {(Object.keys(SETTINGS) as SettingKey[]).map((k) => (
+                <option key={k} value={k}>{SETTING_LABELS[k]}</option>
+              ))}
+            </select>
+          </label>
           <label className="field">
             <span>Camera</span>
             <select value={camera} onChange={(e) => setCamera(e.target.value as CameraKey)} disabled={!enhance}>
@@ -257,8 +256,7 @@ export default function Home() {
           {" Free for everyone, with no sign-up. Each visitor gets a few short clips per day."}
         </p>
 
-        {(
-          <div className="upload">
+        <div className="upload">
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" onChange={onImage} hidden />
             {image ? (
               <div className="thumb">
@@ -271,13 +269,12 @@ export default function Home() {
                 {model.requiresImage ? "+ Add a starting photo (required)" : "+ Add a starting photo (optional)"}
               </button>
             )}
-            <p className="hint">A real photo as the first frame gives the most lifelike faces and places.</p>
-          </div>
-        )}
+            <p className="hint">A real photo of a person as the first frame gives the most lifelike faces.</p>
+        </div>
 
         <label className="check">
           <input type="checkbox" checked={enhance} onChange={(e) => setEnhance(e.target.checked)} />
-          Realism boost: add camera, lighting and detail keywords to my prompt
+          Realism boost: add setting, camera, lighting and human-detail keywords to my prompt
         </label>
 
         {enhance && idea.trim() && (
@@ -300,7 +297,7 @@ export default function Home() {
           <article key={j.id} className="card">
             {j.status === "succeeded" && j.url ? (
               <video src={j.url} controls loop playsInline autoPlay muted />
-            ) : j.status === "failed" || j.status === "canceled" ? (
+            ) : j.status === "failed" ? (
               <div className="placeholder failed">Failed: {j.error ?? "unknown error"}</div>
             ) : (
               <div className="placeholder">

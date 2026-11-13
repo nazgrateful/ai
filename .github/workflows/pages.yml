@@ -40,5 +40,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Pages must publish from this workflow, not from the branch (which
+      # would only show the README). Switch the setting if it isn't already.
+      - name: Make Pages publish from GitHub Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(gh api repos/${{ github.repository }}/pages --jq .build_type || echo unknown)
+          echo "Pages build_type: $current"
+          if [ "$current" != "workflow" ]; then
+            gh api -X PUT repos/${{ github.repository }}/pages -f build_type=workflow \
+              || echo "::warning::Could not switch automatically. In Settings > Pages, set Source to GitHub Actions."
+          fi
       - id: deployment
         uses: actions/deploy-pages@v4

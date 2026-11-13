@@ -1,15 +1,15 @@
-# AI Video Maker
+# Real Human AI Video
 
-A free website that turns a sentence or a photo into a **realistic AI video** of people, animals or places. **No sign-up, no keys and no cost** for you or your visitors.
+A free website that turns a sentence or a photo into a **photorealistic AI video of real-looking people in a real 3D world**. **No sign-up, no keys and no cost** for you or your visitors.
 
 **Live site:** https://nazgrateful.github.io/ai/
 
-- **Three modes:** Humans, Animals and Environments. Each one adds realism details that suit the subject, such as natural skin and hands for people, fur and natural movement for animals, and real light and weather for places.
-- **Camera and lighting presets:** cinematic dolly, handheld, drone, telephoto, macro; golden hour, overcast, night and more.
+- **Human realism engine:** adds natural skin, real eyes, correct hands, subtle expressions and natural body motion to every prompt.
+- **Setting, camera and lighting presets:** city street, home, nature, beach, office, city at night; cinematic dolly, handheld, portrait, tracking, wide; golden hour, window light, night and more.
 - **Two free open-source models:**
   - **LTX-Video:** text or photo to video
-  - **Wan 2.2:** the most realistic option; brings a photo to life
-- **Starting photo:** begin from a real photo to get the most lifelike results.
+  - **Wan 2.2:** the most realistic option; brings a photo of a person to life
+- **Starting photo:** begin from a real photo of a person to get the most lifelike results.
 - A built-in negative prompt steers models away from cartoon looks, plastic skin and extra fingers.
 - Videos appear in a gallery with download links. The history is saved in your browser.
 - Works on phones and desktops.
@@ -46,7 +46,7 @@ Then open http://localhost:3000.
 | `app/page.tsx` | The whole interface: prompt, presets, model options, gallery |
 | `lib/free.ts` | Calls the free Hugging Face models from the browser |
 | `lib/models.ts` | The list of models and the options each one supports |
-| `lib/prompt.ts` | The realism engine: subject details, camera and lighting presets, negative prompt |
+| `lib/prompt.ts` | The human realism engine: settings, camera and lighting presets, negative prompt |
 | `.github/workflows/pages.yml` | Builds the site and publishes it to GitHub Pages |
 
 ## Notes

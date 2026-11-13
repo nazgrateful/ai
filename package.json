@@ -1,8 +1,8 @@
 {
-  "name": "ai-video-maker",
+  "name": "real-human-ai-video",
   "version": "0.1.0",
   "private": true,
-  "description": "Generate photorealistic AI videos of humans, animals and environments.",
+  "description": "Generate photorealistic AI videos of real-looking people in a real 3D world.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
