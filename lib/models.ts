@@ -1,95 +1,33 @@
-// Catalogue of video models.
-//
-// "free" models run on Hugging Face's free GPUs (ZeroGPU) through public
-// Spaces. They cost nothing, but each account gets a small daily GPU
-// allowance and clips are short.
-// "replicate" models are paid per video and only appear when
-// REPLICATE_API_TOKEN is set on the server.
-
-export type Provider = "free" | "replicate";
+// Free video models running on Hugging Face's free GPUs (ZeroGPU Spaces).
+// The visitor's browser calls them directly, so there are no accounts, keys
+// or servers to pay for. Each visitor gets a small daily GPU allowance.
 
 export type VideoModel = {
   id: string;
-  provider: Provider;
   label: string;
   blurb: string;
-  space?: string; // Hugging Face Space for free models
-  aspectRatios?: string[]; // omitted = model picks its own framing
-  durations?: number[]; // seconds; omitted = fixed length
-  fixedDuration?: number;
-  resolutions?: string[];
-  imageParam?: string; // Replicate input name for an optional starting frame
-  acceptsImage?: boolean;
+  space: string; // Hugging Face Space
+  aspectRatios?: string[];
+  durations: number[]; // seconds
   requiresImage?: boolean;
-  supportsNegativePrompt?: boolean;
 };
 
 export const MODELS: VideoModel[] = [
   {
-    id: "free/ltx-video",
-    provider: "free",
-    label: "LTX-Video (free)",
-    blurb: "Free. Text or photo to video. Short clips, about 1 minute to render.",
+    id: "ltx-video",
+    label: "LTX-Video",
+    blurb: "Text or photo to video. Fast, about 1 minute per clip.",
     space: "Lightricks/ltx-video-distilled",
     aspectRatios: ["16:9", "9:16", "1:1"],
-    durations: [3, 5],
-    acceptsImage: true,
-    supportsNegativePrompt: true,
+    durations: [2, 3, 5],
   },
   {
-    id: "free/wan-2.2",
-    provider: "free",
-    label: "Wan 2.2 (free, needs photo)",
-    blurb: "Free. The most realistic free model. Brings a photo to life, so add a starting photo.",
+    id: "wan-2.2",
+    label: "Wan 2.2 (needs a photo)",
+    blurb: "The most realistic free model. Brings a photo to life, so add a starting photo.",
     space: "zerogpu-aoti/wan2-2-fp8da-aoti-faster",
-    durations: [3, 5],
-    acceptsImage: true,
+    durations: [2, 3, 5],
     requiresImage: true,
-    supportsNegativePrompt: true,
-  },
-  {
-    id: "google/veo-3",
-    provider: "replicate",
-    label: "Google Veo 3 (paid)",
-    blurb: "Top-tier realism and physics, with synchronized sound and speech.",
-    aspectRatios: ["16:9", "9:16"],
-    fixedDuration: 8,
-    resolutions: ["720p", "1080p"],
-    imageParam: "image",
-    acceptsImage: true,
-    supportsNegativePrompt: true,
-  },
-  {
-    id: "kwaivgi/kling-v2.1-master",
-    provider: "replicate",
-    label: "Kling 2.1 Master (paid)",
-    blurb: "Excellent human faces, bodies and motion.",
-    aspectRatios: ["16:9", "9:16", "1:1"],
-    durations: [5, 10],
-    imageParam: "start_image",
-    acceptsImage: true,
-    supportsNegativePrompt: true,
-  },
-  {
-    id: "minimax/hailuo-02",
-    provider: "replicate",
-    label: "MiniMax Hailuo 02 (paid)",
-    blurb: "Strong physics: water, fur, cloth and weather.",
-    durations: [6, 10],
-    resolutions: ["768p", "1080p"],
-    imageParam: "first_frame_image",
-    acceptsImage: true,
-  },
-  {
-    id: "bytedance/seedance-1-pro",
-    provider: "replicate",
-    label: "Seedance 1 Pro (paid)",
-    blurb: "Fast, cinematic multi-shot scenes and landscapes.",
-    aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
-    durations: [5, 10],
-    resolutions: ["480p", "1080p"],
-    imageParam: "image",
-    acceptsImage: true,
   },
 ];
 
