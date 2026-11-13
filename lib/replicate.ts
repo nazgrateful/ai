@@ -56,3 +56,7 @@ export function videoUrl(p: Prediction): string | null {
   if (!p.output) return null;
   return Array.isArray(p.output) ? (p.output[0] ?? null) : p.output;
 }
+
+export function hasReplicate(): boolean {
+  return Boolean(process.env.REPLICATE_API_TOKEN);
+}

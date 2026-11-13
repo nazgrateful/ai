@@ -90,6 +90,7 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [paidEnabled, setPaidEnabled] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const model = getModel(modelId)!;
@@ -98,14 +99,35 @@ export default function Home() {
     [idea, subject, camera, lighting, enhance],
   );
 
-  useEffect(() => setJobs(loadHistory()), []);
+  useEffect(() => {
+    // A free render in progress can't survive a page reload.
+    setJobs(
+      loadHistory().map((j) =>
+        j.status === "rendering" ? { ...j, status: "failed", error: "Interrupted (page was closed or reloaded)." } : j,
+      ),
+    );
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((c: { paid?: boolean }) => setPaidEnabled(Boolean(c.paid)))
+      .catch(() => {});
+  }, []);
+
+  const availableModels = MODELS.filter((m) => m.provider === "free" || paidEnabled);
+
+  function updateJob(id: string, patch: Partial<Job>) {
+    setJobs((prev) => {
+      const next = prev.map((j) => (j.id === id ? { ...j, ...patch } : j));
+      saveHistory(next);
+      return next;
+    });
+  }
 
   // Reset options the newly chosen model doesn't support.
   useEffect(() => {
     if (model.aspectRatios && !model.aspectRatios.includes(aspectRatio)) setAspectRatio(model.aspectRatios[0]);
     setDuration(model.durations?.[0]);
     setResolution(model.resolutions?.at(-1));
-    if (!model.imageParam) setImage(null);
+    if (!model.acceptsImage) setImage(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelId]);
 
@@ -163,13 +185,40 @@ export default function Home() {
       setFormError("Describe what you want to see.");
       return;
     }
+    if (model.requiresImage && !image) {
+      setFormError(`${model.label} needs a starting photo. Add one below, or switch to LTX-Video for text only.`);
+      return;
+    }
+    const payload = JSON.stringify({ model: modelId, prompt: finalPrompt, aspectRatio, duration, resolution, image });
+
+    if (model.provider === "free") {
+      // Free models render inside the request: show a card now, fill it in when done.
+      const id = `free-${Date.now()}`;
+      const job: Job = { id, status: "rendering", prompt: idea.trim(), model: model.label, createdAt: Date.now() };
+      setFormError(null);
+      setJobs((prev) => {
+        const next = [job, ...prev];
+        saveHistory(next);
+        return next;
+      });
+      try {
+        const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload });
+        const data = await res.json().catch(() => ({ error: `Server error (${res.status}). The render may have taken too long.` }));
+        if (!res.ok) throw new Error(data.error ?? "Generation failed.");
+        updateJob(id, { status: "succeeded", url: data.url });
+      } catch (err) {
+        updateJob(id, { status: "failed", error: (err as Error).message });
+      }
+      return;
+    }
+
     setSubmitting(true);
     setFormError(null);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: modelId, prompt: finalPrompt, aspectRatio, duration, resolution, image }),
+        body: payload,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Generation failed.");
@@ -259,7 +308,7 @@ export default function Home() {
           <label className="field">
             <span>Model</span>
             <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
-              {MODELS.map((m) => (
+              {availableModels.map((m) => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </select>
@@ -298,9 +347,10 @@ export default function Home() {
         </div>
         <p className="hint">
           {model.blurb}
+          {model.provider === "free" && " Free GPUs come with a daily limit of a few short clips per day."}
         </p>
 
-        {model.imageParam && (
+        {model.acceptsImage && (
           <div className="upload">
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" onChange={onImage} hidden />
             {image ? (
@@ -311,7 +361,7 @@ export default function Home() {
               </div>
             ) : (
               <button type="button" className="secondary" onClick={() => fileInput.current?.click()}>
-                + Add a starting photo (optional)
+                {model.requiresImage ? "+ Add a starting photo (required)" : "+ Add a starting photo (optional)"}
               </button>
             )}
             <p className="hint">A real photo as the first frame gives the most lifelike faces and places.</p>
@@ -348,7 +398,9 @@ export default function Home() {
             ) : (
               <div className="placeholder">
                 <div className="spinner" aria-hidden />
-                Rendering… this usually takes 1–5 minutes
+                {j.status === "rendering"
+                  ? "Rendering on free GPUs… about 1–3 minutes. Keep this page open."
+                  : "Rendering… this usually takes 1–5 minutes"}
               </div>
             )}
             <div className="meta">
@@ -366,7 +418,7 @@ export default function Home() {
           </article>
         ))}
         {jobs.some((j) => j.url) && (
-          <p className="hint">Video links expire about an hour after rendering, so download the ones you want to keep.</p>
+          <p className="hint">Video links expire after a while, so download the ones you want to keep.</p>
         )}
       </section>
     </main>

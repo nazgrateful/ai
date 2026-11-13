@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { generateFree, QuotaError } from "@/lib/free";
 import { getModel } from "@/lib/models";
 import { NEGATIVE_PROMPT } from "@/lib/prompt";
-import { ConfigError, createPrediction } from "@/lib/replicate";
+import { ConfigError, createPrediction, hasReplicate } from "@/lib/replicate";
+
+// Free models render inside this request, so allow the maximum time.
+export const maxDuration = 300;
 
 type Body = {
   model: string;
@@ -10,7 +14,6 @@ type Body = {
   duration?: number;
   resolution?: string;
   image?: string; // data URI of an optional starting frame
-  useNegative?: boolean;
 };
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -30,29 +33,49 @@ export async function POST(req: Request) {
   if (prompt.length < 3) return NextResponse.json({ error: "Please describe your video." }, { status: 400 });
   if (prompt.length > 4000) return NextResponse.json({ error: "Prompt is too long." }, { status: 400 });
 
-  // Only forward parameters this model understands, and only allowed values.
+  if (body.image) {
+    if (!model.acceptsImage) {
+      return NextResponse.json({ error: `${model.label} does not accept a starting photo.` }, { status: 400 });
+    }
+    if (!/^data:image\/(png|jpe?g|webp);base64,/.test(body.image) || body.image.length > MAX_IMAGE_BYTES * 1.4) {
+      return NextResponse.json({ error: "Starting photo must be a PNG, JPEG or WebP under 4 MB." }, { status: 400 });
+    }
+  } else if (model.requiresImage) {
+    return NextResponse.json({ error: `${model.label} needs a starting photo.` }, { status: 400 });
+  }
+
+  const aspectRatio = model.aspectRatios?.includes(body.aspectRatio ?? "") ? body.aspectRatio : undefined;
+  const duration = model.durations?.includes(body.duration ?? -1) ? body.duration : undefined;
+
+  // ---- Free (Hugging Face) ----
+  if (model.provider === "free") {
+    try {
+      const url = await generateFree(model, {
+        prompt,
+        negativePrompt: NEGATIVE_PROMPT,
+        aspectRatio,
+        duration,
+        image: body.image,
+      });
+      return NextResponse.json({ status: "succeeded", url });
+    } catch (err) {
+      const status = err instanceof QuotaError ? 429 : 502;
+      return NextResponse.json({ error: (err as Error).message }, { status });
+    }
+  }
+
+  // ---- Paid (Replicate) ----
+  if (!hasReplicate()) {
+    return NextResponse.json({ error: "Paid models are turned off on this site." }, { status: 400 });
+  }
   const input: Record<string, unknown> = { prompt };
-  if (model.aspectRatios && body.aspectRatio && model.aspectRatios.includes(body.aspectRatio)) {
-    input.aspect_ratio = body.aspectRatio;
-  }
-  if (model.durations && body.duration && model.durations.includes(body.duration)) {
-    input.duration = body.duration;
-  }
+  if (aspectRatio) input.aspect_ratio = aspectRatio;
+  if (duration) input.duration = duration;
   if (model.resolutions && body.resolution && model.resolutions.includes(body.resolution)) {
     input.resolution = body.resolution;
   }
-  if (model.supportsNegativePrompt && body.useNegative !== false) {
-    input.negative_prompt = NEGATIVE_PROMPT;
-  }
-  if (body.image) {
-    if (!model.imageParam) {
-      return NextResponse.json({ error: `${model.label} does not accept a starting image.` }, { status: 400 });
-    }
-    if (!/^data:image\/(png|jpe?g|webp);base64,/.test(body.image) || body.image.length > MAX_IMAGE_BYTES * 1.4) {
-      return NextResponse.json({ error: "Starting image must be a PNG, JPEG or WebP under 4 MB." }, { status: 400 });
-    }
-    input[model.imageParam] = body.image;
-  }
+  if (model.supportsNegativePrompt) input.negative_prompt = NEGATIVE_PROMPT;
+  if (body.image && model.imageParam) input[model.imageParam] = body.image;
 
   try {
     const prediction = await createPrediction(model.id, input);
