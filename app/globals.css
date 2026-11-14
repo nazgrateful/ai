@@ -140,3 +140,56 @@ button { font: inherit; cursor: pointer; }
 .meta small { color: var(--muted); }
 .actions { display: flex; gap: 16px; margin-top: 8px; align-items: center; }
 .actions a { color: var(--accent-2); font-size: 0.85rem; }
+
+/* Mode tabs */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tab {
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.tab small { font-size: 0.75rem; opacity: 0.8; }
+.tab.active { border-color: var(--accent); color: var(--text); background: #7c6cff22; }
+
+.counter { color: var(--muted); font-size: 0.8rem; }
+
+/* Voiceover vs lip-sync choice */
+.choice { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.choice legend { color: var(--muted); font-size: 0.9rem; margin-bottom: 6px; }
+.option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.option.active { border-color: var(--accent); background: #7c6cff14; }
+.option input { margin-top: 4px; accent-color: var(--accent); }
+.option small { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+
+/* Settings */
+.settings { font-size: 0.9rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 12px; }
+.settings summary { cursor: pointer; }
+.settings a { color: var(--accent-2); }
+.token-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.token-row input {
+  flex: 1 1 200px;
+  min-width: 0;
+  background: #0f1015;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.meta .error { margin-top: 6px; font-size: 0.85rem; }

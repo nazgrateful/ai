@@ -31,7 +31,7 @@ function friendlyError(err: unknown): string {
   if (/quota/i.test(msg)) {
     const wait = msg.match(/Try again in ([0-9:]+)/)?.[1];
     return (
-      "You've used today's free GPU time (2 minutes a day without an account)." +
+      "You've used today's free GPU time." +
       (wait && wait !== "0:00:00" ? ` It refills in about ${wait}.` : " It refills over the next day.") +
       " Tip: Wan 2.2 with a photo and a 2-second clip uses the least, so you can make several a day."
     );
@@ -44,10 +44,17 @@ function friendlyError(err: unknown): string {
 
 export async function generateFree(
   model: VideoModel,
-  opts: { prompt: string; negativePrompt: string; aspectRatio?: string; duration: number; image?: string | null },
+  opts: {
+    prompt: string;
+    negativePrompt: string;
+    aspectRatio?: string;
+    duration: number;
+    image?: string | null;
+    token?: string; // optional free Hugging Face token: 5 min/day instead of 2
+  },
 ): Promise<string> {
   try {
-    const app = await Client.connect(model.space);
+    const app = await Client.connect(model.space, opts.token ? { token: opts.token as `hf_${string}` } : {});
     const image = opts.image ? handle_file(await dataUriToBlob(opts.image)) : null;
 
     let result;
