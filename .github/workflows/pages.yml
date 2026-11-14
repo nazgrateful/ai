@@ -9,6 +9,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
@@ -40,17 +41,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Pages must publish from this workflow, not from the branch (which
-      # would only show the README). Switch the setting if it isn't already.
-      - name: Make Pages publish from GitHub Actions
+      # If Pages is still set to "Deploy from a branch", GitHub also publishes
+      # the README for every push. Wait for that to finish so the app is
+      # always published last. (Permanent fix: Settings > Pages > Source >
+      # GitHub Actions.)
+      - name: Wait for GitHub's branch publish to finish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          current=$(gh api repos/${{ github.repository }}/pages --jq .build_type || echo unknown)
-          echo "Pages build_type: $current"
-          if [ "$current" != "workflow" ]; then
-            gh api -X PUT repos/${{ github.repository }}/pages -f build_type=workflow \
-              || echo "::warning::Could not switch automatically. In Settings > Pages, set Source to GitHub Actions."
-          fi
+          for i in $(seq 1 60); do
+            pending=$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}" \
+              --jq '[.workflow_runs[] | select(.name=="pages build and deployment" and .status!="completed")] | length' || echo 0)
+            [ "$pending" = "0" ] && break
+            echo "Waiting for the branch publish to finish ($i)..."
+            sleep 10
+          done
       - id: deployment
         uses: actions/deploy-pages@v4
